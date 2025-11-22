@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Blood Component Analyzer</title>
+  <link rel="stylesheet" href="tracker.css">
+</head>
+<body>
+
+  <h1>Blood Component Analyzer</h1>
+
+  <div class="container">
+   
+
+    <label>Haemoglobin (g/dL) — Ideal: 12 – 17.5</label>
+    <input type="number" id="hb" step="0.1">
+
+    <label>WBC Count (×10⁹/L) — Ideal: 4 – 11</label>
+    <input type="number" id="wbc" step="0.1">
+
+    <label>Platelets (×10⁹/L) — Ideal: 150 – 450</label>
+    <input type="number" id="platelets" step="1">
+
+    <button onclick="analyze()">Analyze</button>
+
+    <div id="output"></div>
+  </div>
+
+  <script src="tracker.js"></script>
+</body>
+</html>

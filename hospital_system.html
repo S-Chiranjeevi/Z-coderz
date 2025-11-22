@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Doctor Portal — Patient Records</title>
+<style>
+  :root{
+    --bg1:#0f172a; --card:#ffffff; --accent:#2563eb; --muted:#64748b;
+  }
+  body{
+    margin:0; font-family:Inter,system-ui,Arial; background:linear-gradient(135deg,#0f172a 0%, #0b1220 60%);
+    color:#0b1220; min-height:100vh; display:flex; align-items:flex-start; justify-content:center; padding:30px;
+  }
+  .app {
+    width:100%; max-width:1100px; background:linear-gradient(180deg,#fff 0%, #fbfdff 100%); border-radius:14px;
+    box-shadow:0 10px 30px rgba(2,6,23,0.45); overflow:hidden;
+  }
+  header.app-header{ padding:20px 28px; display:flex; align-items:center; justify-content:space-between; background:linear-gradient(90deg,#2563eb,#7c3aed); color:white;}
+  header.app-header h1{margin:0;font-size:18px;letter-spacing:0.2px}
+  header.app-header .sub{ font-size:13px; opacity:0.95 }
+  main{padding:22px;}
+  .grid { display:grid; grid-template-columns: 320px 1fr; gap:18px; align-items:start; }
+  .card { background:white; border-radius:10px; padding:16px; box-shadow:0 6px 18px rgba(3,7,18,0.08) }
+  .login-info { font-size:13px; color:var(--muted); margin-bottom:10px; }
+  label { display:block; font-weight:600; margin:8px 0 6px; font-size:13px; color:#0b1220 }
+  input[type="text"], input[type="password"], input[type="file"], select, textarea {
+    width:100%; padding:10px 12px; border-radius:8px; border:1px solid #e6eef8; font-size:14px; box-sizing:border-box;
+    background:#fff;
+  }
+  button { background:var(--accent); color:white; padding:10px 14px; border:none; border-radius:8px; cursor:pointer; font-weight:600 }
+  button.secondary { background:#e6eef8; color:#0b1220 }
+  .muted { color:var(--muted); font-size:13px }
+  .doctor-list { font-size:13px; margin:8px 0 14px }
+  .top-row { display:flex; gap:10px; align-items:center; margin-bottom:12px; }
+  .search-row { display:flex; gap:8px; align-items:center; }
+  .hidden{ display:none !important; }
+  .patient-card { padding:14px; background:#f8fbff; border-radius:10px; }
+  .field { display:flex; gap:10px; margin-bottom:8px; }
+  .field label { width:180px; font-weight:700; color:#0b1220 }
+  .field input, .field textarea { flex:1 }
+  .reports-list, .scans-list { margin-top:8px; padding-left:18px; font-size:14px; color:#0b1220 }
+  .small { font-size:13px; color:var(--muted) }
+  .actions { display:flex; gap:8px; margin-top:12px }
+  .success { color:green; margin-top:8px; font-weight:700 }
+  .danger { color:#b91c1c; font-weight:700 }
+  .note { font-size:12px; color:var(--muted); margin-top:8px }
+  footer { padding:14px 22px; text-align:center; font-size:13px; color:var(--muted); background:#fff7; }
+  .topbar-right { display:flex; gap:12px; align-items:center; }
+  .file-link { margin-left:12px; font-size:13px; color:#0366d6; cursor:pointer; text-decoration:underline; background: none; border: none; padding:0; }
+  .small-btn { font-size:12px; padding:6px 8px; border-radius:6px; }
+  .bmi-badge { padding:4px 8px; border-radius:6px; color:white; font-weight:700; margin-left:8px; display:inline-block; }
+  .bmi-under { background:#f59e0b; color:#111 } /* yellow/orange */
+  .bmi-normal { background:#10b981; } /* green */
+  .bmi-over { background:#f97316; } /* orange */
+  .bmi-obese { background:#ef4444; } /* red */
+  @media (max-width:900px){
+    .grid{ grid-template-columns: 1fr; }
+    header.app-header{ flex-direction:column; gap:8px; align-items:flex-start }
+  }
+</style>
+</head>
+<body>
+  <div class="app" role="application">
+    <header class="app-header">
+      <div>
+        <h1>Doctor Portal — Patient Records</h1>
+        <div class="sub">Secure local demo — IndexedDB (browser). For production use a secure backend.</div>
+      </div>
+      <div class="topbar-right">
+        <div id="loggedDoctor" class="muted">Not logged in</div>
+        <button id="logoutBtn" class="secondary hidden">Logout</button>
+      </div>
+    </header>
+
+    <main>
+      <div class="grid">
+        <!-- LEFT: Login / Info / Quick Actions -->
+        <div>
+          <div id="loginCard" class="card">
+            <h3 style="margin:0 0 8px">Doctor Login</h3>
+            <div class="login-info">Use one of these demo accounts to sign in:</div>
+            <div class="doctor-list">
+              <div><strong>DOC1001</strong> / docpass1 — Dr. Anil Rao</div>
+              <div><strong>DOC1002</strong> / docpass2 — Dr. Priya Sen</div>
+              <div><strong>DOC1003</strong> / docpass3 — Dr. Vikram K</div>
+            </div>
+
+            <label for="doctorId">Doctor ID</label>
+            <input id="doctorId" type="text" placeholder="Enter doctor id (e.g. DOC1001)">
+
+            <label for="doctorPwd">Password</label>
+            <input id="doctorPwd" type="password" placeholder="Enter password">
+
+            <div style="display:flex; gap:8px; margin-top:10px;">
+              <button id="loginBtn">Login</button>
+              <button id="demoFill" class="secondary">Fill demo</button>
+            </div>
+            <div class="note">After login you can search patient by ID or mobile and edit medical info; upload files for reports & scans.</div>
+          </div>
+
+          <div id="tipsCard" class="card" style="margin-top:12px">
+            <h4 style="margin:0 0 8px">Tips</h4>
+            <div class="small">• Upload PDF/image files via the file inputs in the patient panel.<br>
+              • Text reports/scans are preserved alongside file uploads.<br>
+              • Files are saved into the patient object as data URLs (or sandbox links for seeded samples).</div>
+          </div>
+        </div>
+
+        <!-- RIGHT: Search and Patient Panel -->
+        <div>
+          <div id="workArea" class="card hidden">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <div>
+                <strong id="docWelcome">Welcome, Doctor</strong>
+                <div class="small" id="docRole">You are viewing patient records</div>
+              </div>
+            </div>
+
+            <hr style="margin:12px 0">
+
+            <div class="top-row">
+              <div class="search-row" style="flex:1">
+                <label style="margin:0 8px 0 0">Search By:</label>
+                <select id="searchType" style="width:140px">
+                  <option value="">--Select--</option>
+                  <option value="id">Patient ID</option>
+                  <option value="mobile">Mobile</option>
+                </select>
+
+                <input id="searchInput" type="text" placeholder="Select search type first" style="flex:1; margin-left:8px">
+                <button id="searchBtn" style="margin-left:8px">Search</button>
+              </div>
+
+              <div>
+                <button id="createPatientBtn" class="secondary">Create New Patient</button>
+              </div>
+            </div>
+
+            <div id="searchMsg" class="muted" style="margin-top:8px"></div>
+
+            <div id="patientSection" class="patient-card hidden" style="margin-top:12px">
+              <h3 style="margin:0 0 8px">Patient Profile</h3>
+
+              <!-- Basic info -->
+              <div class="field"><label>Unique Patient ID</label><div id="patientIdDisplay" class="small"></div></div>
+              <div class="field"><label>Name</label><input id="p_name" type="text"></div>
+              <div class="field"><label>Age</label><input id="p_age" type="text"></div>
+              <div class="field"><label>Gender</label>
+                <select id="p_gender"><option>Male</option><option>Female</option><option>Other</option></select>
+              </div>
+              <div class="field"><label>Mobile</label><input id="p_mobile" type="text"></div>
+
+              <!-- Vitals -->
+              <h4 style="margin-top:14px">Vitals & Basic Medical Info</h4>
+              <div class="field"><label>Blood Pressure</label><input id="p_bp" placeholder="e.g. 120/80"></div>
+              <div class="field"><label>Sugar (mg/dL)</label><input id="p_sugar" placeholder="e.g. 95"></div>
+              <div class="field"><label>Height (cm)</label><input id="p_height" placeholder="e.g. 170"></div>
+              <div class="field"><label>Weight (kg)</label><input id="p_weight" placeholder="e.g. 65"></div>
+              <div class="field"><label>BMI</label><div id="p_bmi_display" class="small"></div><span id="p_bmi_badge" class=""></span></div>
+              <div class="field"><label>Haemoglobin (g/dL)</label><input id="p_hb" placeholder="e.g. 13.5"></div>
+              <div class="field"><label>Basic Notes</label><textarea id="p_notes" rows="3"></textarea></div>
+
+              <!-- Text Reports -->
+              <h4 style="margin-top:14px">Text Test Reports</h4>
+              <div style="display:flex; gap:8px;">
+                <input id="newReportInput" placeholder="Add a short text report (name - result)" />
+                <button id="addReportBtn" class="secondary small-btn">Add Report</button>
+              </div>
+              <ul id="reportsList" class="reports-list"></ul>
+
+              <!-- File Reports upload -->
+              <div style="margin-top:10px">
+                <label>Upload Report File (pdf/image)</label>
+                <input id="fileReportInput" type="file" accept="image/*,.pdf">
+                <button id="uploadFileReportBtn" class="secondary small-btn" style="margin-top:8px">Upload Report File</button>
+              </div>
+
+              <!-- Scans text -->
+              <h4 style="margin-top:12px">Text Scans</h4>
+              <div style="display:flex; gap:8px;">
+                <input id="newScanInput" placeholder="Add a short scan note" />
+                <button id="addScanBtn" class="secondary small-btn">Add Scan</button>
+              </div>
+              <ul id="scansList" class="scans-list"></ul>
+
+              <!-- File Scans upload -->
+              <div style="margin-top:10px">
+                <label>Upload Scan File (image/pdf)</label>
+                <input id="fileScanInput" type="file" accept="image/*,.pdf">
+                <button id="uploadFileScanBtn" class="secondary small-btn" style="margin-top:8px">Upload Scan File</button>
+              </div>
+
+              <!-- File lists -->
+              <h4 style="margin-top:12px">Uploaded Report Files</h4>
+              <ul id="fileReportsList" class="reports-list"></ul>
+
+              <h4 style="margin-top:8px">Uploaded Scan Files</h4>
+              <ul id="fileScansList" class="scans-list"></ul>
+
+              <div class="actions">
+                <button id="savePatientBtn">Save Changes</button>
+                <button id="closePatientBtn" class="secondary">Close</button>
+              </div>
+              <div id="saveMsg" class="success hidden">Saved.</div>
+            </div>
+
+          </div>
+
+          <!-- Create patient form panel -->
+          <div id="createPatientPanel" class="card hidden" style="margin-top:12px">
+            <h3>Create New Patient</h3>
+            <div class="small">Fill basic details; a unique 12-digit Patient ID will be created automatically.</div>
+
+            <label>Name</label>
+            <input id="c_name" type="text">
+            <label>Age</label>
+            <input id="c_age" type="number">
+            <label>Gender</label>
+            <select id="c_gender"><option>Male</option><option>Female</option><option>Other</option></select>
+            <label>Mobile (10 digits)</label>
+            <input id="c_mobile" type="text">
+            <label>Password for patient view</label>
+            <input id="c_password" type="password" placeholder="patient will use this to view on index page">
+            <label>Initial Notes</label>
+            <input id="c_notes" type="text">
+            <div style="display:flex; gap:8px; margin-top:8px;">
+              <button id="createSaveBtn">Create</button>
+              <button id="createCancelBtn" class="secondary">Cancel</button>
+            </div>
+            <div id="createMsg" class="muted" style="margin-top:8px"></div>
+          </div>
+
+        </div>
+      </div>
+    </main>
+
+    <footer>Doctor Portal demo • Data stored locally in your browser (IndexedDB)</footer>
+  </div>
+
+<script>
+/* -------------- Doctor demo accounts (in-memory) -------------- */
+const DOCTORS = [
+  { id: "DOC1001", pwd: "docpass1", name: "Dr. Anil Rao" },
+  { id: "DOC1002", pwd: "docpass2", name: "Dr. Priya Sen" },
+  { id: "DOC1003", pwd: "docpass3", name: "Dr. Vikram K" }
+];
+
+/* ---------------- IndexedDB setup (patients + mobileIndex) ---------------- */
+const DB_NAME = "PatientDatabase";
+const DB_VER = 5;
+const STORE_PATIENTS = "patients";
+const STORE_MOBILE = "mobileIndex";
+let db = null;
+
+function openDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, DB_VER);
+    req.onupgradeneeded = (e) => {
+      const d = e.target.result;
+      if (!d.objectStoreNames.contains(STORE_PATIENTS)) d.createObjectStore(STORE_PATIENTS, { keyPath: "id" });
+      if (!d.objectStoreNames.contains(STORE_MOBILE)) d.createObjectStore(STORE_MOBILE, { keyPath: "mobile" });
+    };
+    req.onsuccess = (e) => { db = e.target.result; resolve(db); };
+    req.onerror = (e) => reject(e.target.error);
+  });
+}
+
+function tx(storeName, mode="readonly"){
+  return db.transaction(storeName, mode).objectStore(storeName);
+}
+
+function putPatient(patient){ return new Promise((res, rej) => { try{ const r = tx(STORE_PATIENTS,"readwrite").put(patient); r.onsuccess = () => res(true); r.onerror = (e)=>rej(e.target.error);}catch(ex){rej(ex)} }); }
+function putMobile(mobile,id){ return new Promise((res, rej) => { try{ const r = tx(STORE_MOBILE,"readwrite").put({mobile,id}); r.onsuccess = ()=>res(true); r.onerror=(e)=>rej(e.target.error);}catch(ex){rej(ex)} }); }
+function getPatient(id){ return new Promise((res, rej)=>{ try{ const r = tx(STORE_PATIENTS).get(id); r.onsuccess = ()=>res(r.result || null); r.onerror=(e)=>rej(e.target.error);}catch(ex){rej(ex)} }); }
+function getMobile(m){ return new Promise((res, rej)=>{ try{ const r = tx(STORE_MOBILE).get(m); r.onsuccess = ()=>res(r.result || null); r.onerror=(e)=>rej(e.target.error);}catch(ex){rej(ex)} }); }
+
+/* ---------------- helper: unique 12-digit id ---------------- */
+function mkId(){ return Math.floor(100000000000 + Math.random()*900000000000).toString(); }
+async function mkUniqueId(){
+  for(let i=0;i<12;i++){
+    const c = mkId();
+    const existing = await getPatient(c);
+    if(!existing) return c;
+  }
+  return Date.now().toString().slice(-12);
+}
+
+/* ------------------ DOM helpers ------------------ */
+const el = id => document.getElementById(id);
+function show(idOrEl){ const e = typeof idOrEl==='string'?el(idOrEl):idOrEl; if(e) e.classList.remove('hidden'); }
+function hide(idOrEl){ const e = typeof idOrEl==='string'?el(idOrEl):idOrEl; if(e) e.classList.add('hidden'); }
+
+/* ------------------ App state ------------------ */
+let currentDoctor = null;
+let currentPatient = null;
+
+/* ------------------ BMI helpers ------------------ */
+function computeBMI(heightCm, weightKg){
+  const h = parseFloat(heightCm);
+  const w = parseFloat(weightKg);
+  if(!h || !w) return null;
+  const m = h/100;
+  const bmi = w / (m*m);
+  return Math.round(bmi * 10) / 10;
+}
+function bmiCategory(bmi){
+  if(bmi === null) return { label: 'Not recorded', cls: '' };
+  if(bmi < 18.5) return { label: 'Underweight', cls: 'bmi-under' };
+  if(bmi < 25) return { label: 'Normal', cls: 'bmi-normal' };
+  if(bmi < 30) return { label: 'Overweight', cls: 'bmi-over' };
+  return { label: 'Obese', cls: 'bmi-obese' };
+}
+
+/* ------------------ Prepare app after DB open ------------------ */
+window.addEventListener('DOMContentLoaded', async () => {
+  await openDB();
+
+  // wire up login
+  el('demoFill').addEventListener('click', ()=>{
+    el('doctorId').value = 'DOC1001'; el('doctorPwd').value = 'docpass1';
+  });
+
+  el('loginBtn').addEventListener('click', handleLogin);
+  el('logoutBtn').addEventListener('click', handleLogout);
+
+  // Work area controls
+  el('searchBtn').addEventListener('click', handleSearch);
+  el('createPatientBtn').addEventListener('click', ()=>{ show('createPatientPanel'); hide('patientSection'); el('createMsg').textContent=''; });
+  el('createCancelBtn').addEventListener('click', ()=>{ hide('createPatientPanel'); });
+  el('createSaveBtn').addEventListener('click', handleCreatePatient);
+
+  // Patient panel buttons
+  el('addReportBtn').addEventListener('click', addReport);
+  el('addScanBtn').addEventListener('click', addScan);
+  el('savePatientBtn').addEventListener('click', savePatientEdits);
+  el('closePatientBtn').addEventListener('click', ()=>{ hide('patientSection'); });
+
+  // File upload actions
+  el('uploadFileReportBtn').addEventListener('click', uploadReportFile);
+  el('uploadFileScanBtn').addEventListener('click', uploadScanFile);
+
+  // live BMI calculation when doctor types height/weight
+  el('p_height').addEventListener('input', onHeightOrWeightChange);
+  el('p_weight').addEventListener('input', onHeightOrWeightChange);
+
+  // allow Enter key on search field
+  el('searchInput').addEventListener('keyup', (e)=>{ if(e.key==='Enter') handleSearch(); });
+
+  // initial demo: ensure some sample patients exist (only if none)
+  await seedDemoPatients();
+});
+
+/* ------------------ Demo seed patients (optional) ------------------ */
+async function seedDemoPatients(){
+  const check = await new Promise((res,rej)=>{ try{ const cursorReq = tx(STORE_PATIENTS).openCursor(); cursorReq.onsuccess = (ev)=>{ const cur = ev.target.result; if(cur) res(true); else res(false); }; cursorReq.onerror=(e)=>rej(e.target.error);}catch(ex){res(false)} });
+  if(check) return;
+
+  // create sample patients with one text report and one file link (sandbox path)
+  const p1 = {
+    id: '100000000001',
+    name: 'Rahul Sharma',
+    age: '34',
+    gender: 'Male',
+    mobile: '9876543210',
+    password: 'p123',
+    allergies: 'Penicillin',
+    medications: 'Atorvastatin',
+    bp: '120/80', sugar: '92', height: '172', weight: '70', hb: '14.2',
+    notes: 'No chronic illness',
+    reports: ['2024-01-01 - Blood test: Normal'],
+    scans: ['2024-01-15 - Chest X-Ray: Clear'],
+    fileReports: [
+      { name: 'sample-image.png', type: 'image/png', url: 'sandbox:/mnt/data/Screenshot 2025-11-22 063454.png' }
+    ],
+    fileScans: [],
+    bmi: computeBMI('172','70')
+  };
+  await putPatient(p1); await putMobile(p1.mobile,p1.id);
+}
+
+/* ------------------ Login / Logout ------------------ */
+function handleLogin(){
+  const idv = (el('doctorId').value || '').trim();
+  const pwd = (el('doctorPwd').value || '').trim();
+  const found = DOCTORS.find(d => d.id === idv && d.pwd === pwd);
+  if(!found){ alert('Invalid doctor ID or password'); return; }
+  currentDoctor = found;
+  el('loggedDoctor').textContent = `${found.name} (${found.id})`;
+  show('workArea'); hide('loginCard'); show('logoutBtn'); el('doctorId').value=''; el('doctorPwd').value='';
+  el('docWelcome').textContent = `Welcome, ${found.name}`;
+}
+function handleLogout(){
+  currentDoctor = null;
+  el('loggedDoctor').textContent = 'Not logged in';
+  hide('workArea'); show('loginCard'); hide('logoutBtn'); hide('patientSection'); hide('createPatientPanel');
+}
+
+/* ------------------ Search ------------------ */
+async function handleSearch(){
+  el('searchMsg').textContent = '';
+  const type = (el('searchType').value || '').trim();
+  const q = (el('searchInput').value || '').trim();
+  if(!type){ el('searchMsg').textContent = 'Please choose search type'; return; }
+  if(!q){ el('searchMsg').textContent = 'Enter search value'; return; }
+
+  try{
+    let patient = null;
+    if(type === 'id'){
+      patient = await getPatient(q);
+    } else {
+      if(!/^[6-9]\d{9}$/.test(q)){ el('searchMsg').textContent = 'Enter valid 10-digit mobile'; return; }
+      const rec = await getMobile(q);
+      if(!rec){ el('searchMsg').textContent = 'Mobile not found'; return; }
+      patient = await getPatient(rec.id);
+    }
+    if(!patient){ el('searchMsg').textContent = 'Patient record missing'; return; }
+
+    currentPatient = patient;
+    populatePatientUI(patient);
+    show('patientSection');
+    hide('createPatientPanel');
+    el('saveMsg').classList.add('hidden');
+  }catch(err){
+    console.error('search error',err); el('searchMsg').textContent = 'Search failed';
+  }
+}
+
+/* populate patient UI */
+function populatePatientUI(p){
+  el('patientIdDisplay').textContent = p.id || '';
+  el('p_name').value = p.name || '';
+  el('p_age').value = p.age || '';
+  el('p_gender').value = p.gender || '';
+  el('p_mobile').value = p.mobile || '';
+  el('p_bp').value = p.bp || '';
+  el('p_sugar').value = p.sugar || '';
+  el('p_height').value = p.height || '';
+  el('p_weight').value = p.weight || '';
+  el('p_hb').value = p.hb || '';
+  el('p_notes').value = p.notes || '';
+
+  // BMI display
+  const bmiVal = (p.bmi !== undefined && p.bmi !== null) ? p.bmi : null;
+  el('p_bmi_display').textContent = bmiVal !== null ? bmiVal : 'Not recorded';
+  const cat = bmiCategory(bmiVal);
+  const badge = el('p_bmi_badge');
+  badge.textContent = bmiVal !== null ? ` ${cat.label}` : '';
+  badge.className = cat.cls ? `bmi-badge ${cat.cls}` : '';
+
+  // reports & scans arrays
+  renderList('reportsList', p.reports || []);
+  renderList('scansList', p.scans || []);
+  renderFileList('fileReportsList', p.fileReports || [], 'fileReports');
+  renderFileList('fileScansList', p.fileScans || [], 'fileScans');
+}
+
+function renderList(listId, arr){
+  const ul = el(listId);
+  ul.innerHTML = '';
+  (arr||[]).forEach((it, idx)=>{
+    const li = document.createElement('li');
+    li.textContent = it;
+    const del = document.createElement('button');
+    del.textContent = 'Delete'; del.style.marginLeft='10px'; del.style.fontSize='12px';
+    del.className = 'secondary small-btn';
+    del.addEventListener('click', async ()=>{
+      (currentPatient[listId==='reportsList'?'reports':'scans'] || []).splice(idx,1);
+      await putPatient(currentPatient);
+      renderList(listId, currentPatient[listId==='reportsList'?'reports':'scans']);
+    });
+    li.appendChild(del);
+    ul.appendChild(li);
+  });
+}
+
+function renderFileList(listId, arr, key){
+  const ul = el(listId);
+  ul.innerHTML = '';
+  (arr||[]).forEach((f, idx)=>{
+    const li = document.createElement('li');
+    
+    const nameSpan = document.createElement('span');
+    nameSpan.textContent = f.name || `file-${idx+1}`;
+    li.appendChild(nameSpan);
+
+    const viewBtn = document.createElement('button');
+    viewBtn.textContent = 'View';
+    viewBtn.className = 'file-link';
+    viewBtn.addEventListener('click', ()=> openFileObject(f));
+    li.appendChild(viewBtn);
+
+    const dlBtn = document.createElement('button');
+    dlBtn.textContent = 'Download';
+    dlBtn.className = 'secondary small-btn';
+    dlBtn.style.marginLeft = '8px';
+    dlBtn.addEventListener('click', ()=> downloadFileObject(f));
+    li.appendChild(dlBtn);
+
+    const del = document.createElement('button');
+    del.textContent = 'Delete';
+    del.className = 'secondary small-btn';
+    del.style.marginLeft = '8px';
+    del.addEventListener('click', async ()=>{
+      currentPatient[key] = currentPatient[key] || [];
+      currentPatient[key].splice(idx,1);
+      await putPatient(currentPatient);
+      renderFileList(listId, currentPatient[key], key);
+    });
+    li.appendChild(del);
+
+    ul.appendChild(li);
+  });
+}
+
+function openFileObject(f){
+  if(!f) return;
+  if(f.data && f.data.startsWith('data:')){
+    const w = window.open();
+    w.document.write(`<title>${f.name}</title>`);
+    if(f.type && f.type.startsWith('image/')){
+      w.document.write(`<img src="${f.data}" style="max-width:100%"/>`);
+    } else {
+      w.document.write(`<iframe src="${f.data}" style="width:100%;height:100vh;border:none"></iframe>`);
+    }
+    return;
+  }
+  if(f.url){
+    window.open(f.url, '_blank');
+    return;
+  }
+  alert('File preview not available.');
+}
+
+function downloadFileObject(f){
+  if(f.data && f.data.startsWith('data:')){
+    const a = document.createElement('a');
+    a.href = f.data;
+    a.download = f.name || 'file';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    return;
+  }
+  if(f.url){
+    window.open(f.url, '_blank');
+    return;
+  }
+  alert('Cannot download this file.');
+}
+
+/* ------------------ Add report / scan ------------------ */
+async function addReport(){
+  const text = (el('newReportInput').value || '').trim();
+  if(!text) return;
+  currentPatient.reports = currentPatient.reports || [];
+  currentPatient.reports.unshift(`${new Date().toISOString().slice(0,10)} - ${text}`);
+  await putPatient(currentPatient);
+  renderList('reportsList', currentPatient.reports);
+  el('newReportInput').value='';
+}
+
+async function addScan(){
+  const text = (el('newScanInput').value || '').trim();
+  if(!text) return;
+  currentPatient.scans = currentPatient.scans || [];
+  currentPatient.scans.unshift(`${new Date().toISOString().slice(0,10)} - ${text}`);
+  await putPatient(currentPatient);
+  renderList('scansList', currentPatient.scans);
+  el('newScanInput').value='';
+}
+
+/* ------------------ Upload report/scan files ------------------ */
+async function uploadReportFile(){
+  const input = el('fileReportInput');
+  if(!input.files || !input.files[0]) return alert('Choose a file to upload.');
+  const file = input.files[0];
+  const reader = new FileReader();
+  reader.onload = async (ev) => {
+    const dataUrl = ev.target.result; // data:... base64
+    currentPatient.fileReports = currentPatient.fileReports || [];
+    currentPatient.fileReports.unshift({ name: file.name, type: file.type || '', data: dataUrl });
+    await putPatient(currentPatient);
+    renderFileList('fileReportsList', currentPatient.fileReports, 'fileReports');
+    input.value = '';
+  };
+  reader.readAsDataURL(file);
+}
+
+async function uploadScanFile(){
+  const input = el('fileScanInput');
+  if(!input.files || !input.files[0]) return alert('Choose a file to upload.');
+  const file = input.files[0];
+  const reader = new FileReader();
+  reader.onload = async (ev) => {
+    const dataUrl = ev.target.result;
+    currentPatient.fileScans = currentPatient.fileScans || [];
+    currentPatient.fileScans.unshift({ name: file.name, type: file.type || '', data: dataUrl });
+    await putPatient(currentPatient);
+    renderFileList('fileScansList', currentPatient.fileScans, 'fileScans');
+    input.value = '';
+  };
+  reader.readAsDataURL(file);
+}
+
+/* ------------------ Live BMI update helper ------------------ */
+function onHeightOrWeightChange(){
+  if(!currentPatient) return;
+  const h = el('p_height').value.trim();
+  const w = el('p_weight').value.trim();
+  const bmi = computeBMI(h,w);
+  currentPatient.bmi = bmi;
+  const badgeEl = el('p_bmi_badge');
+  el('p_bmi_display').textContent = bmi !== null ? bmi : 'Not recorded';
+  const cat = bmiCategory(bmi);
+  badgeEl.textContent = bmi !== null ? ` ${cat.label}` : '';
+  badgeEl.className = cat.cls ? `bmi-badge ${cat.cls}` : '';
+}
+
+/* ------------------ Save edits ------------------ */
+async function savePatientEdits(){
+  if(!currentPatient) return;
+  currentPatient.name = el('p_name').value.trim();
+  currentPatient.age = el('p_age').value.trim();
+  currentPatient.gender = el('p_gender').value;
+  const newMobile = el('p_mobile').value.trim();
+  if(newMobile !== currentPatient.mobile){
+    const rec = await getMobile(newMobile);
+    if(rec){ alert('Mobile already used by another patient'); return; }
+    currentPatient.mobile = newMobile;
+    await putMobile(newMobile, currentPatient.id);
+  }
+  currentPatient.bp = el('p_bp').value.trim();
+  currentPatient.sugar = el('p_sugar').value.trim();
+  currentPatient.height = el('p_height').value.trim();
+  currentPatient.weight = el('p_weight').value.trim();
+  currentPatient.bmi = computeBMI(currentPatient.height, currentPatient.weight);
+  currentPatient.hb = el('p_hb').value.trim();
+  currentPatient.notes = el('p_notes').value.trim();
+
+  await putPatient(currentPatient);
+  el('saveMsg').classList.remove('hidden');
+  setTimeout(()=>el('saveMsg').classList.add('hidden'), 2200);
+}
+
+/* ------------------ Create new patient ------------------ */
+async function handleCreatePatient(){
+  const name = (el('c_name').value||'').trim();
+  const age = (el('c_age').value||'').trim();
+  const gender = (el('c_gender').value||'').trim();
+  const mobile = (el('c_mobile').value||'').trim();
+  const pword = (el('c_password').value||'').trim();
+  const notes = (el('c_notes').value||'').trim();
+
+  if(!name || !age) { el('createMsg').textContent='Name and age required'; return; }
+  if(!/^[6-9]\d{9}$/.test(mobile)){ el('createMsg').textContent='Enter valid 10-digit mobile'; return; }
+
+  const existing = await getMobile(mobile);
+  if(existing){ el('createMsg').textContent='Mobile already registered'; return; }
+
+  const newId = await mkUniqueId();
+  const patient = { id:newId, name, age, gender, mobile, notes, reports:[], scans:[], fileReports:[], fileScans:[], password: pword || '', bmi: null };
+  await putPatient(patient); await putMobile(mobile,newId);
+  el('createMsg').textContent = `Created patient ${name} (ID ${newId})`;
+  el('c_name').value=''; el('c_age').value=''; el('c_mobile').value=''; el('c_password').value=''; el('c_notes').value='';
+  currentPatient = patient;
+  populatePatientUI(patient);
+  show('patientSection');
+  hide('createPatientPanel');
+}
+</script>
+</body>
+</html>

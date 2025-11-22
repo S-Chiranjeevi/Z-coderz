@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Mood Tracker</title>
+    <link rel="stylesheet" href="mood.css">
+</head>
+<body>
+
+<h1>Mood Tracker</h1>
+
+<div class="box">
+    <label for="mood">How are you feeling today?</label>
+    <select id="mood">
+        <option value="happy">😊 Happy</option>
+        <option value="okay">😐 Okay</option>
+        <option value="sad">😔 Down</option>
+        <option value="stressed">😣 Stressed</option>
+        <option value="tired">😴 Tired</option>
+    </select>
+
+    <label>Notes (optional):</label>
+    <textarea id="note" placeholder="Write something..."></textarea>
+
+    <button onclick="saveMood()">Save Mood</button>
+</div>
+
+<h2>Your Mood History</h2>
+<div id="history"></div>
+
+<button id="clearBtn" onclick="clearData()">Clear All Data</button>
+<div id="history"></div>
+
+
+
+<script src="mood.js"></script>
+</body>
+</html>

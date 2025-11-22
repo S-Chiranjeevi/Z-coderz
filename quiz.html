@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Well-Being Check-In Quiz</title>
+    <link rel="stylesheet" href="quiz.css">
+</head>
+<body>
+
+<h1>Well-Being Check-In</h1>
+
+<div id="quizContainer">
+    <div class="question">
+        <p>1.How have your days been?</p>
+        <select id="q1">
+            <option value="1">1 - Bad</option>
+            <option value="2">2 - Average</option>
+            <option value="3">3 - okay</option>
+            <option value="4">4 - Good</option>
+            <option value="5">5 - Excellent</option>
+        </select>
+    </div>
+
+    <div class="question">
+        <p>2. How stressed have you felt recently?</p>
+        <select id="q2">
+            <option value="1">1 - Extremely stressed</option>
+            <option value="2">2 - Quite stressed</option>
+            <option value="3">3 - Somewhat stressed</option>
+            <option value="4">4 - A little stressed</option>
+            <option value="5">5 - Not stressed</option>
+        </select>
+    </div>
+
+    <div class="question">
+        <p>3. How satisfied are you with your sleep?</p>
+        <select id="q3">
+            <option value="1">1 - Very unsatisfied</option>
+            <option value="2">2 - Unsatisfied</option>
+            <option value="3">3 - Neutral</option>
+            <option value="4">4 - Satisfied</option>
+            <option value="5">5 - Very satisfied</option>
+        </select>
+    </div>
+
+    <div class="question">
+        <p>4. How is your energy level most days?</p>
+        <select id="q4">
+            <option value="1">1 - Very low</option>
+            <option value="2">2 - Low</option>
+            <option value="3">3 - Average</option>
+            <option value="4">4 - Good</option>
+            <option value="5">5 - Very good</option>
+        </select>
+    </div>
+
+    <div class="question">
+        <p>5. How supported do you feel by people around you?</p>
+        <select id="q5">
+            <option value="1">1 - Not supported</option>
+            <option value="2">2 - A little</option>
+            <option value="3">3 - Somewhat</option>
+            <option value="4">4 - Supported</option>
+            <option value="5">5 - Very supported</option>
+        </select>
+    </div>
+
+    <button onclick="calculateScore()">Submit</button>
+    <footer><marquee behavior="" direction="left to right">This information may be wrong.Do not self diagnose and always visit a qualified practitioner in case of doubt</marquee> </footer>
+</div>
+
+<div id="resultBox">
+    <h2>Your Check-In Result</h2>
+    <p id="resultText"></p>
+    <a href="https://youtu.be/YRJ6xoiRcpQ?si=GG009xu22-mkNMgB" target="_blank" rel="noopener">Relaxing music for a calm mind:</a>
+    <a href="https://youtu.be/qUz93CyNIz0?si=vUZH0cL1jgNYz62O" target="_blank" rel="noopener">To manage stress and anxiety
+<script src="quiz.js"></script>
+
+</body>
+
+</html>

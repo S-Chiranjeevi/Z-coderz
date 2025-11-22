@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Patient Search | National Health Records</title>
+<link rel="stylesheet" href="style1.css" />
+<style>
+.hidden { display: none; }
+.card { background: rgba(255,255,255,0.9); color:#222; padding:20px; border-radius:12px; max-width:700px; margin:auto; }
+body { font-family: Inter, system-ui, Arial; background: linear-gradient(135deg,#ff7eb3,#65d6ff); padding:30px; }
+.file-link { color:#0366d6; text-decoration:underline; cursor:pointer; background:none; border:none; padding:0; font-size:14px }
+.bmi-badge { padding:4px 8px; border-radius:6px; color:white; font-weight:700; margin-left:8px; display:inline-block; }
+.bmi-under { background:#f59e0b; color:#111 } /* yellow/orange */
+.bmi-normal { background:#10b981; } /* green */
+.bmi-over { background:#f97316; } /* orange */
+.bmi-obese { background:#ef4444; } /* red */
+</style>
+</head>
+<body>
+
+<header style="text-align:center;">
+  <img src="1000049585.png" width="120" height="120" alt="">
+  <h1>National Unified Patient Health Records</h1>
+  <p>Search patient data from anywhere in India</p>
+</header>
+
+<nav style="text-align:center; margin-bottom:18px;">
+  <a href="index.html">Search</a> | <a href="register.html">Register Patient</a> | <a href="hospital_system.html">Doctor Login</a> | <a href="mood.html">Mood Tracker</a> | <a href="quiz.html">Mental health tracker</a> | <a href="tracker.html">Blood Component Analyzer</a>
+</nav>
+
+<div class="card">
+  <h2>Search Patient</h2>
+  <form id="searchForm">
+    <label>Search By:</label>
+    <select id="searchType" required>
+      <option value="">-- Select Option --</option>
+      <option value="id">Patient ID</option>
+      <option value="mobile">Mobile Number</option>
+    </select>
+
+    <div id="searchInputArea" class="hidden" style="margin-top:12px;">
+      <label id="searchLabel"></label>
+      <input type="text" id="searchInput" style="width:100%; padding:10px; border-radius:8px; border:1px solid #ddd;">
+
+      <label style="margin-top:8px;">Password:</label>
+      <input type="password" id="searchPassword" required style="width:100%; padding:10px; border-radius:8px; border:1px solid #ddd;">
+
+      <button type="submit" style="margin-top:10px; display:block; width:100%; padding:12px; background:#ff4d88; color:white; border:none; border-radius:8px;">Search</button>
+    </div>
+  </form>
+</div>
+
+<div id="patientData" class="card hidden" style="margin-top:18px;">
+  <h2>Patient Details (Read-only)</h2>
+  <div>
+    <p><strong>Patient ID:</strong> <span id="patientIdDisplay"></span></p>
+    <p><strong>Name:</strong> <span id="name"></span></p>
+    <p><strong>Age:</strong> <span id="age"></span></p>
+    <p><strong>Gender:</strong> <span id="gender"></span></p>
+    <p><strong>Mobile:</strong> <span id="mobile"></span></p>
+
+    <p><strong>Blood sugar Level:</strong> <span id="p_sugar"></span></p>
+    <p><strong>Blood Pressure:</strong> <span id="p_bp"></span></p>
+    <p><strong>Height:</strong> <span id="p_height"></span></p>
+    <p><strong>Weight:</strong> <span id="p_weight"></span></p>
+
+    <p><strong>BMI:</strong> <span id="p_bmi"></span> <span id="p_bmi_badge" class=""></span></p>
+
+    <p><strong>Haemoglobin:</strong> <span id="p_hb"></span></p>
+    <p><strong>Basic Notes:</strong> <span id="p_notes"></span></p>
+    <p><strong>Allergies:</strong> <span id="allergies"></span></p>
+    <p><strong>Medications:</strong> <span id="medications"></span></p>
+
+    <h4>Text Reports</h4>
+    <ul id="reportsList"></ul>
+
+    <h4>Text Scans</h4>
+    <ul id="scansList"></ul>
+
+    <h4>Uploaded Report Files</h4>
+    <ul id="fileReportsList"></ul>
+
+    <h4>Uploaded Scan Files</h4>
+    <ul id="fileScansList"></ul>
+  </div>
+</div>
+
+<script>
+/* IndexedDB constants — keep DB version 5 to match hospital_system */
+const DB_NAME = "PatientDatabase";
+const DB_VERSION = 5;
+const STORE_PATIENTS = "patients";
+const STORE_MOBILE = "mobileIndex";
+let db = null;
+
+function openDatabase() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, DB_VERSION);
+    req.onupgradeneeded = (e) => {
+      const d = e.target.result;
+      if (!d.objectStoreNames.contains(STORE_PATIENTS)) d.createObjectStore(STORE_PATIENTS, { keyPath: "id" });
+      if (!d.objectStoreNames.contains(STORE_MOBILE)) d.createObjectStore(STORE_MOBILE, { keyPath: "mobile" });
+    };
+    req.onsuccess = (e) => { db = e.target.result; resolve(db); };
+    req.onerror = (e) => reject(e.target.error);
+  });
+}
+function tx(store, mode="readonly"){ return db.transaction(store, mode).objectStore(store); }
+function getPatientById(id){ return new Promise((res, rej)=>{ try{ const r = tx(STORE_PATIENTS).get(id); r.onsuccess = ()=>res(r.result||null); r.onerror=(e)=>rej(e.target.error);}catch(ex){rej(ex)} }); }
+function getMobileRecord(mobile){ return new Promise((res, rej)=>{ try{ const r = tx(STORE_MOBILE).get(mobile); r.onsuccess = ()=>res(r.result||null); r.onerror=(e)=>rej(e.target.error);}catch(ex){rej(ex)} }); }
+
+/* helpers for BMI display */
+function computeBMIFromCmKg(heightCm, weightKg){
+  const h = parseFloat(heightCm);
+  const w = parseFloat(weightKg);
+  if(!h || !w) return null;
+  const m = h / 100;
+  const bmi = w / (m*m);
+  return Math.round(bmi * 10) / 10; // one decimal
+}
+function bmiCategory(bmi){
+  if(bmi === null) return { label: 'Not recorded', cls: '' };
+  if(bmi < 18.5) return { label: 'Underweight', cls: 'bmi-under' };
+  if(bmi < 25) return { label: 'Normal', cls: 'bmi-normal' };
+  if(bmi < 30) return { label: 'Overweight', cls: 'bmi-over' };
+  return { label: 'Obese', cls: 'bmi-obese' };
+}
+
+/* render file lists read-only (files are stored as objects with data or url) */
+function renderFileListReadOnly(listId, arr){
+  const ul = document.getElementById(listId);
+  ul.innerHTML = '';
+  (arr||[]).forEach(f=>{
+    const li = document.createElement('li');
+    const name = document.createElement('span'); name.textContent = f.name || 'file';
+    li.appendChild(name);
+    const viewBtn = document.createElement('button');
+    viewBtn.textContent = 'View';
+    viewBtn.className = 'file-link';
+    viewBtn.style.marginLeft = '10px';
+    viewBtn.addEventListener('click', ()=> {
+      if(f.data && f.data.startsWith('data:')) {
+        const w = window.open();
+        if(f.type && f.type.startsWith('image/')) w.document.write(`<img src="${f.data}" style="max-width:100%"/>`);
+        else w.document.write(`<iframe src="${f.data}" style="width:100%;height:100vh;border:none"></iframe>`);
+      } else if(f.url) {
+        window.open(f.url, '_blank');
+      } else {
+        alert('File not available');
+      }
+    });
+    li.appendChild(viewBtn);
+
+    const dl = document.createElement('button');
+    dl.textContent = 'Download';
+    dl.className = 'file-link';
+    dl.style.marginLeft = '8px';
+    dl.addEventListener('click', ()=>{
+      if(f.data && f.data.startsWith('data:')) {
+        const a = document.createElement('a'); a.href = f.data; a.download = f.name || 'file'; document.body.appendChild(a); a.click(); a.remove();
+      } else if(f.url) {
+        window.open(f.url, '_blank');
+      } else alert('Cannot download');
+    });
+    li.appendChild(dl);
+
+    ul.appendChild(li);
+  });
+}
+
+document.addEventListener('DOMContentLoaded', async ()=>{
+  await openDatabase();
+
+  const searchType = document.getElementById('searchType');
+  const searchInputArea = document.getElementById('searchInputArea');
+  const searchLabel = document.getElementById('searchLabel');
+  const searchInput = document.getElementById('searchInput');
+
+  searchType.addEventListener('change', ()=>{
+    if(!searchType.value){ searchInputArea.classList.add('hidden'); return; }
+    searchInputArea.classList.remove('hidden');
+    if(searchType.value === 'id'){ searchLabel.textContent = 'Enter Patient ID:'; searchInput.placeholder = 'Enter Patient ID'; }
+    else { searchLabel.textContent = 'Enter Mobile Number:'; searchInput.placeholder = 'Enter 10-digit mobile number'; }
+  });
+
+  document.getElementById('searchForm').addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    const type = searchType.value;
+    const val = (searchInput.value||'').trim();
+    const pass = (document.getElementById('searchPassword').value||'').trim();
+    let patient = null;
+    if(type==='id'){ patient = await getPatientById(val); }
+    else {
+      if(!/^[6-9]\d{9}$/.test(val)) return alert('Enter a valid 10-digit mobile number');
+      const rec = await getMobileRecord(val);
+      if(!rec) return alert('No patient found');
+      patient = await getPatientById(rec.id);
+    }
+    if(!patient) return alert('No patient found');
+    if((patient.password||'') !== pass) return alert('Incorrect password');
+    displayPatient(patient);
+  });
+});
+
+function displayPatient(p){
+  document.getElementById('patientIdDisplay').innerText = p.id || '';
+  document.getElementById('name').innerText = p.name || '';
+  document.getElementById('age').innerText = p.age || '';
+  document.getElementById('gender').innerText = p.gender || '';
+  document.getElementById('mobile').innerText = p.mobile || '';
+  document.getElementById('p_sugar').innerText = p.sugar || 'Not recorded';
+  document.getElementById('p_bp').innerText = p.bp || 'Not recorded';
+  document.getElementById('p_height').innerText = p.height || 'Not recorded';
+  document.getElementById('p_weight').innerText = p.weight || 'Not recorded';
+
+  // BMI display (numeric + category badge)
+  const bmiEl = document.getElementById('p_bmi');
+  const badge = document.getElementById('p_bmi_badge');
+  const bmiVal = (p.bmi !== undefined && p.bmi !== null) ? p.bmi : null;
+  bmiEl.innerText = bmiVal !== null ? bmiVal : 'Not recorded';
+  const cat = bmiCategory(bmiVal);
+  badge.textContent = bmiVal !== null ? ` ${cat.label}` : '';
+  badge.className = cat.cls ? `bmi-badge ${cat.cls}` : '';
+
+  document.getElementById('p_hb').innerText = p.hb || 'Not recorded';
+  document.getElementById('p_notes').innerText = p.notes || '';
+  document.getElementById('allergies').innerText = p.allergies || 'None';
+  document.getElementById('medications').innerText = p.medications || 'None';
+
+  // text lists
+  const rUL = document.getElementById('reportsList'); rUL.innerHTML = '';
+  (p.reports||[]).forEach(it=>{ const li=document.createElement('li'); li.textContent = it; rUL.appendChild(li); });
+
+  const sUL = document.getElementById('scansList'); sUL.innerHTML = '';
+  (p.scans||[]).forEach(it=>{ const li=document.createElement('li'); li.textContent = it; sUL.appendChild(li); });
+
+  // file lists (read-only view).
+  renderFileListReadOnly('fileReportsList', p.fileReports || []);
+  renderFileListReadOnly('fileScansList', p.fileScans || []);
+
+  document.getElementById('patientData').classList.remove('hidden');
+}
+</script>
+
+</body>
+</html>

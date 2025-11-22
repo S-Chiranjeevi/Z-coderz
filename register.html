@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Register Patient | National Health Records</title>
+<link rel="stylesheet" href="style1.css">
+</head>
+
+<body>
+
+<header>
+    <h1>Patient Registration</h1>
+    <p>Create a new patient record</p>
+</header>
+
+<nav>
+    <a href="index.html">Search</a>
+    <a href="register.html">Register Patient</a>
+    <a href="hospital_system.html">Doctor Login</a>
+</nav>
+
+<section class="search-section">
+    <div class="card">
+
+        <h2>Register New Patient</h2>
+
+        <form id="registerForm">
+            <label>Name:*</label>
+            <input type="text" id="regName" required>
+
+            <label>Age:*</label>
+            <input type="number" id="regAge" required>
+
+            <label>Gender:*</label>
+            <select id="regGender">
+                <option>Male</option>
+                <option>Female</option>
+                <option>Other</option>
+            </select>
+
+            <label>Allergies:*</label>
+            <input type="text" id="regAllergies" placeholder="If no allergies, type 'none'">
+
+            <label>Medications:*</label>
+            <input type="text" id="regMedications" placeholder="If no medications, type 'none'">
+
+            <label>Mobile Number:*</label>
+            <input type="text" id="regMobile" placeholder="Enter 10-digit mobile number" required>
+
+            <p id="mobileWarning" style="color:red; display:none;">
+                ❌ Mobile number already registered!
+            </p>
+
+            <label>Password:*</label>
+            <input type="password" id="regPassword" required>
+
+            <label>Confirm Password:*</label>
+            <input type="password" id="regConfirmPassword" required>
+
+            <button type="submit">Register</button>
+        </form>
+
+        <div id="newIdBox" class="hidden" style="margin-top:15px;">
+            <h3>Patient Registered Successfully!</h3>
+            <p>Your Generated Patient ID:</p>
+            <h2 id="generatedId"></h2>
+        </div>
+
+    </div>
+</section>
+
+<!-- IMPORTANT: Load script.js here -->
+<script src="script.js"></script>
+
+
+</body>
+</html>
